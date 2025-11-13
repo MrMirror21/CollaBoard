@@ -20,17 +20,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: pnpm
-
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
           version: 10
           run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -49,17 +49,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: pnpm
-
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
           version: 10
           run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -72,19 +72,6 @@ jobs:
 
       - name: Build
         run: pnpm build
-
-      - name: Deploy Frontend to Vercel
-        id: vercel
-        working-directory: apps/web
-        env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-        run: |
-          pnpm dlx vercel@latest pull --yes --environment=production --token "$VERCEL_TOKEN"
-          pnpm dlx vercel@latest build --prod --token "$VERCEL_TOKEN"
-          DEPLOY_URL=$(pnpm dlx vercel@latest deploy --prebuilt --prod --token "$VERCEL_TOKEN" | tail -n 1)
-          echo "url=$DEPLOY_URL" >> "$GITHUB_OUTPUT"
 
       - name: Deploy Backend to Railway
         working-directory: apps/server
