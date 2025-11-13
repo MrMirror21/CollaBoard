@@ -32,18 +32,26 @@ export default [
   ...compat.extends("airbnb", "airbnb/hooks"),
 
   {
-    files: ["**/*.ts", "**/*.tsx"],
+    files: ["src/**/*.ts", "src/**/*.tsx"],
     languageOptions: {
       parser: tsParser,
       parserOptions: {
-        projectService: true,
+        project: "./tsconfig.json",
         tsconfigRootDir: __dirname,
-        noWarnOnUnsupportedTypeScriptVersion: true,
-        ecmaVersion: "latest",
-        sourceType: "module",
-        ecmaFeatures: {
-          jsx: true,
-        },
+      },
+    },
+  },
+  {
+    files: [
+      "vitest.config.ts",
+      "vite.config.ts",
+      ".storybook/**/*.ts",
+      ".storybook/**/*.tsx"
+    ],
+    languageOptions: {
+      parser: tsParser,
+      parserOptions: {
+        projectService: false, // type-check 비활성화
       },
     },
     plugins: {
