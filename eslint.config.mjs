@@ -33,7 +33,7 @@ export default [
   ...compat.extends("airbnb", "airbnb/hooks"),
 
   {
-    files: ["src/**/*.ts", "src/**/*.tsx"],
+    files: ["apps/web/src/**/*.ts", "apps/web/src/**/*.tsx"],
     languageOptions: {
       parser: tsParser,
       parserOptions: {
