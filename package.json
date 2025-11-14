@@ -4,7 +4,7 @@
     "private": true,
     "type": "module",
     "scripts": {
-        "dev": "pnpm --filter web dev && pnpm --filter server dev",
+        "dev": "pnpm --filter web dev --filter server dev",
         "build": "pnpm -r build",
         "test": "pnpm -r test",
         "lint": "pnpm -r lint"
@@ -37,5 +37,6 @@
             "eslint --fix",
             "prettier --write"
         ]
-    }
+    },
+    "packageManager": "pnpm@10.22.0"
 }
