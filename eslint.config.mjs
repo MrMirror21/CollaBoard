@@ -26,6 +26,7 @@ export default [
       "**/build/**",
       "**/.next/**",
       "**/coverage/**",
+      "eslint.config.mjs",
     ],
   },
 
