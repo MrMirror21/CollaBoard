@@ -1,22 +1,20 @@
-import { FlatCompat } from "@eslint/eslintrc";
-import js from "@eslint/js";
-import tseslint from "@typescript-eslint/eslint-plugin";
-import tsParser from "@typescript-eslint/parser";
-import react from "eslint-plugin-react";
-import reactHooks from "eslint-plugin-react-hooks";
+import airbnbExtended from "eslint-config-airbnb-extended";
 import prettier from "eslint-plugin-prettier";
 import prettierConfig from "eslint-config-prettier";
-import importPlugin from "eslint-plugin-import";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const compat = new FlatCompat({
-  baseDirectory: __dirname,
-  recommendedConfig: js.configs.recommended,
-});
+const SOURCE_FILES = ["**/*.{js,cjs,mjs,jsx,ts,tsx,cts,mts}"];
+const TYPED_SOURCE_FILES = ["**/*.{ts,tsx,cts,mts}"];
+const TYPECHECK_FREE_FILES = [
+  "vitest.config.ts",
+  "vite.config.ts",
+  ".storybook/**/*.ts",
+  ".storybook/**/*.tsx",
+];
 
 export default [
   {
@@ -29,80 +27,55 @@ export default [
       "eslint.config.mjs",
     ],
   },
-
-  ...compat.extends("airbnb", "airbnb/hooks"),
-
+  airbnbExtended.plugins.stylistic,
+  airbnbExtended.plugins.importX,
+  airbnbExtended.plugins.node,
+  airbnbExtended.plugins.react,
+  airbnbExtended.plugins.reactA11y,
+  airbnbExtended.plugins.reactHooks,
+  airbnbExtended.plugins.typescriptEslint,
+  ...airbnbExtended.configs.base.recommended,
+  ...airbnbExtended.configs.base.typescript,
+  ...airbnbExtended.configs.react.recommended,
+  ...airbnbExtended.configs.react.typescript,
   {
-    files: ["apps/web/src/**/*.ts", "apps/web/src/**/*.tsx"],
+    files: TYPED_SOURCE_FILES,
     languageOptions: {
-      parser: tsParser,
-      parserOptions: {
-        project: "./tsconfig.json",
-        tsconfigRootDir: __dirname,
-      },
+      parserOptions: { tsconfigRootDir: __dirname },
     },
   },
   {
-    files: [
-      "vitest.config.ts",
-      "vite.config.ts",
-      ".storybook/**/*.ts",
-      ".storybook/**/*.tsx"
-    ],
+    files: TYPECHECK_FREE_FILES,
     languageOptions: {
-      parser: tsParser,
-      parserOptions: {
-        projectService: false, // type-check 비활성화
-      },
+      parserOptions: { projectService: false },
     },
-    plugins: {
-      "@typescript-eslint": tseslint,
-      react,
-      "react-hooks": reactHooks,
-      import: importPlugin,
-      prettier,
-    },
-    settings: {
-      react: {
-        version: "detect",
-      },
-      "import/resolver": {
-        typescript: {
-          project: [
-            "./apps/web/tsconfig.node.json",
-            "./apps/web/tsconfig.app.json",
-            "./tsconfig.json",
-          ],
-        },
-        node: {
-          extensions: [".js", ".ts", ".tsx"],
-        },
-      },
-    },
+  },
+  {
+    name: "collaboard/custom-rule-overrides",
     rules: {
-      ...tseslint.configs.recommended.rules,
-
-      ...react.configs.recommended.rules,
-      ...reactHooks.configs.recommended.rules,
-
-      // 충돌나는 규칙 off
-      "react/react-in-jsx-scope": "off", // Vite/React 17+
-      "import/prefer-default-export": "off",
+      "react/react-in-jsx-scope": "off",
       "react/jsx-props-no-spreading": "off",
       "react/require-default-props": "off",
-
-      "prettier/prettier": "error",
-
-      "import/no-extraneous-dependencies": [
+      "import-x/prefer-default-export": "off",
+      "import-x/no-extraneous-dependencies": [
         "error",
         {
           devDependencies: true,
           optionalDependencies: false,
           peerDependencies: false,
         },
-      ]
+      ],
     },
   },
-
+  {
+    name: "collaboard/prettier",
+    files: SOURCE_FILES,
+    plugins: {
+      prettier,
+    },
+    rules: {
+      "prettier/prettier": "error",
+    },
+  },
   prettierConfig,
 ];
