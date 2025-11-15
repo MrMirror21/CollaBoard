@@ -7,6 +7,7 @@ export default defineConfig({
   },
   engine: 'classic',
   datasource: {
+    // TODO: Add database URL from environment variables
     url: env('DATABASE_URL'),
   },
 });
