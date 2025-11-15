@@ -27,6 +27,14 @@ export default [
       "eslint.config.mjs",
     ],
   },
+  {
+    files: TYPED_SOURCE_FILES,
+    languageOptions: {
+      parserOptions: {
+        tsconfigRootDir: __dirname,
+      },
+    },
+  },
   airbnbExtended.plugins.stylistic,
   airbnbExtended.plugins.importX,
   airbnbExtended.plugins.node,
@@ -39,9 +47,23 @@ export default [
   ...airbnbExtended.configs.react.recommended,
   ...airbnbExtended.configs.react.typescript,
   {
-    files: TYPED_SOURCE_FILES,
+    files: ["apps/web/**/*.{ts,tsx}"],
     languageOptions: {
-      parserOptions: { tsconfigRootDir: __dirname },
+      parserOptions: {
+        projectService: false,
+        project: path.join(__dirname, "apps/web/tsconfig.app.json"),
+        tsconfigRootDir: __dirname,
+      },
+    },
+  },
+  {
+    files: ["apps/server/**/*.{ts,tsx}"],
+    languageOptions: {
+      parserOptions: {
+        projectService: false,
+        project: path.join(__dirname, "apps/server/tsconfig.json"),
+        tsconfigRootDir: __dirname,
+      },
     },
   },
   {
