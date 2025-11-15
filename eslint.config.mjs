@@ -25,6 +25,7 @@ export default [
       "**/.next/**",
       "**/coverage/**",
       "eslint.config.mjs",
+      "apps/server/prisma.config.ts",
     ],
   },
   airbnbExtended.plugins.stylistic,
