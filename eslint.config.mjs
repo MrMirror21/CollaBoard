@@ -27,14 +27,6 @@ export default [
       "eslint.config.mjs",
     ],
   },
-  {
-    files: TYPED_SOURCE_FILES,
-    languageOptions: {
-      parserOptions: {
-        tsconfigRootDir: __dirname,
-      },
-    },
-  },
   airbnbExtended.plugins.stylistic,
   airbnbExtended.plugins.importX,
   airbnbExtended.plugins.node,
