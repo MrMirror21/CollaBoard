@@ -1,21 +1,71 @@
-import { PrismaClient } from '@prisma/client';
-import Fastify from 'fastify';
+import Fastify, { type FastifyRequest, type FastifyReply } from 'fastify';
+import cors from '@fastify/cors';
+import jwt from '@fastify/jwt';
+import { prisma } from './lib/prisma.js';
+import { authRoutes } from './modules/auth/auth.controller.js';
+import { JWT_SECRET, type JwtPayload } from './lib/jwt.js';
 
-const prisma = new PrismaClient();
+declare module 'fastify' {
+  interface FastifyInstance {
+    authenticate: (
+      request: FastifyRequest,
+      reply: FastifyReply,
+    ) => Promise<void>;
+  }
+}
+
 const SERVER_PORT = 4000;
 const SERVER_HOST = '0.0.0.0';
+
+// JWT 페이로드 타입 확장
+declare module '@fastify/jwt' {
+  interface FastifyJWT {
+    payload: JwtPayload;
+    user: JwtPayload;
+  }
+}
 
 async function startServer() {
   const fastify = Fastify({
     logger: true,
   });
 
-  fastify.get('/healthz', async () => ({ status: 'ok' }));
-  fastify.get('/db-check', async () => {
-    const [{ now }] = await prisma.$queryRaw<{ now: Date }[]>`SELECT NOW()`;
-    return { status: 'ok', now };
+  // CORS 설정
+  await fastify.register(cors, {
+    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+    credentials: true,
   });
 
+  // JWT 플러그인 등록
+  await fastify.register(jwt, {
+    secret: JWT_SECRET,
+  });
+
+  // JWT 인증 데코레이터
+  fastify.decorate(
+    'authenticate',
+    async (request: FastifyRequest, reply: FastifyReply): Promise<void> => {
+      try {
+        await request.jwtVerify();
+      } catch {
+        await reply.status(401).send({ error: '인증이 필요합니다.' });
+      }
+    },
+  );
+
+  // Health check
+  fastify.get('/healthz', async () => ({ status: 'ok' }));
+
+  // DB 연결 확인
+  fastify.get('/db-check', async () => {
+    const result = await prisma.$queryRaw<{ now: Date }[]>`SELECT NOW() as now`;
+    return { status: 'ok', now: result[0].now };
+  });
+
+  // 인증 라우트 등록
+  await fastify.register(authRoutes, { prefix: '/auth' });
+
+  // Graceful shutdown
   fastify.addHook('onClose', async () => {
     await prisma.$disconnect();
   });
