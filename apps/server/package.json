@@ -4,8 +4,11 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "build": "tsc",
+    "build": "prisma generate && tsc",
     "start": "node dist/server.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "db:push": "prisma db push",
     "db:studio": "prisma studio"
   },
@@ -19,7 +22,9 @@
   },
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",
+    "@vitest/coverage-v8": "4.0.8",
     "prisma": "^6.19.0",
-    "tsx": "^4.20.6"
+    "tsx": "^4.20.6",
+    "vitest": "^4.0.8"
   }
 }

@@ -14,13 +14,13 @@ export interface ButtonProps {
 }
 
 /** Primary UI component for user interaction */
-export const Button = ({
+export function Button({
   primary = false,
   size = 'medium',
   backgroundColor,
   label,
   ...props
-}: ButtonProps) => {
+}: ButtonProps) {
   const mode = primary
     ? 'storybook-button--primary'
     : 'storybook-button--secondary';
@@ -28,7 +28,7 @@ export const Button = ({
     <button
       type="button"
       className={['storybook-button', `storybook-button--${size}`, mode].join(
-        ' '
+        ' ',
       )}
       style={{ backgroundColor }}
       {...props}
@@ -36,4 +36,4 @@ export const Button = ({
       {label}
     </button>
   );
-};
+}
