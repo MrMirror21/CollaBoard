@@ -2,8 +2,11 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import apiClient from '@/lib/api/api-client';
+import { useAuthStore } from '@/domains/auth/store/useAuthStore';
 
 const loginSchema = z.object({
   email: z.string().email('유효한 이메일 주소를 입력해주세요.'),
@@ -19,6 +22,9 @@ const loginSchema = z.object({
 type LoginFormData = z.infer<typeof loginSchema>;
 
 export function LoginForm() {
+  const navigate = useNavigate();
+  const setAuth = useAuthStore((state) => state.setAuth);
+  const { state: { from } = { from: '/' } } = useLocation();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -39,16 +45,26 @@ export function LoginForm() {
     setError(null);
 
     try {
-      // TODO: 실제 로그인 API 호출로 대체
-      await new Promise((resolve) => {
-        setTimeout(resolve, 1000);
-      }); // 시뮬레이션
+      const response = await apiClient.post<{
+        user: { id: string; email: string; name: string };
+        token: string;
+        password: string;
+      }>('/auth/login', {
+        email: _data.email,
+        password: _data.password,
+      });
 
-      // 성공 시 로직 (토큰 저장, 리디렉션 등)
-    } catch (_err) {
+      const { user, token } = response.data;
+
+      setAuth(user, token);
+      // 이전 페이지 존재 시 이전 페이지로 리다이렉트
+      if (from) {
+        navigate(from as string);
+      } else {
+        navigate('/dashboard');
+      }
+    } catch (err) {
       setError('로그인에 실패했습니다. 이메일과 비밀번호를 확인해주세요.');
-    } finally {
-      setIsLoading(false);
     }
   };
 
