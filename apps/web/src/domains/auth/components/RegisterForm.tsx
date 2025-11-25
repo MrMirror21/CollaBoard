@@ -84,16 +84,17 @@ export function RegisterForm() {
     try {
       const response = await apiClient.post<{
         user: { id: string; email: string; name: string };
-        token: string;
+        accessToken: string;
+        refreshToken: string;
       }>('/auth/register', {
         name: data.name,
         email: data.email,
         password: data.password,
       });
 
-      const { user, token } = response.data;
+      const { user, accessToken, refreshToken } = response.data;
 
-      setAuth(user, token);
+      setAuth(user, accessToken, refreshToken);
       navigate('/dashboard');
     } catch (err) {
       if (

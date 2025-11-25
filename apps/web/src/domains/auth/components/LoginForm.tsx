@@ -47,16 +47,17 @@ export function LoginForm() {
     try {
       const response = await apiClient.post<{
         user: { id: string; email: string; name: string };
-        token: string;
+        accessToken: string;
+        refreshToken: string;
         password: string;
       }>('/auth/login', {
         email: _data.email,
         password: _data.password,
       });
 
-      const { user, token } = response.data;
+      const { user, accessToken, refreshToken } = response.data;
 
-      setAuth(user, token);
+      setAuth(user, accessToken, refreshToken);
       // 이전 페이지 존재 시 이전 페이지로 리다이렉트
       if (from) {
         navigate(from as string);

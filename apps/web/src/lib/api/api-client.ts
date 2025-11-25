@@ -6,29 +6,118 @@ import axios, {
 } from 'axios';
 import { useAuthStore } from '@/domains/auth/store/useAuthStore';
 
+// 토큰 갱신용 별도 axios 인스턴스 (interceptor 무한 루프 방지)
+const refreshClient = axios.create({
+  baseURL: import.meta.env.VITE_API_URL,
+  timeout: 10000,
+});
+
 const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
   timeout: 10000,
 });
 
+// 토큰 갱신 중복 요청 방지를 위한 상태 관리
+let isRefreshing = false;
+let failedQueue: {
+  resolve: (token: string) => void;
+  reject: (error: Error) => void;
+}[] = [];
+
+const processQueue = (error: Error | null, token: string | null = null) => {
+  failedQueue.forEach((prom) => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token!);
+    }
+  });
+  failedQueue = [];
+};
+
 // Request Interceptor: JWT 토큰 자동 추가
 apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
-  const { token } = useAuthStore.getState();
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+  const { accessToken } = useAuthStore.getState();
+  if (accessToken) {
+    config.headers.Authorization = `Bearer ${accessToken}`;
   }
   return config;
 });
 
-// Response Interceptor: 에러 처리
+interface RetryableRequestConfig extends InternalAxiosRequestConfig {
+  retry?: boolean;
+}
+
+// Response Interceptor: 토큰 만료 시 자동 갱신
 apiClient.interceptors.response.use(
   (response: AxiosResponse) => response,
-  (error: AxiosError<{ error: { code: string; message: string } }>) => {
-    if (error.response?.status === 401) {
+  async (error: AxiosError<{ error: { code: string; message: string } }>) => {
+    const originalRequest = error.config as RetryableRequestConfig | undefined;
+
+    // 401 에러가 아니거나, 원본 요청이 없거나, 이미 재시도한 경우 에러 반환
+    if (
+      error.response?.status !== 401 ||
+      !originalRequest ||
+      originalRequest.retry
+    ) {
+      return Promise.reject(error);
+    }
+
+    // 이미 토큰 갱신 중이면 대기열에 추가
+    if (isRefreshing) {
+      return new Promise<string>((resolve, reject) => {
+        failedQueue.push({ resolve, reject });
+      })
+        .then((token) => {
+          originalRequest.headers.Authorization = `Bearer ${token}`;
+          return apiClient(originalRequest);
+        })
+        .catch((err) => Promise.reject(err));
+    }
+
+    originalRequest.retry = true;
+    isRefreshing = true;
+
+    const { refreshToken } = useAuthStore.getState();
+
+    // refreshToken이 없으면 로그아웃
+    if (!refreshToken) {
       useAuthStore.getState().logout();
       window.location.href = '/login';
+      return Promise.reject(error);
     }
-    return Promise.reject(error);
+
+    try {
+      // 별도 인스턴스로 토큰 갱신 요청 (무한 루프 방지)
+      const response = await refreshClient.post<{
+        accessToken: string;
+        refreshToken: string;
+        user: { id: string; email: string; name: string };
+      }>('/auth/refresh', { refreshToken });
+
+      const {
+        accessToken: newAccessToken,
+        refreshToken: newRefreshToken,
+        user,
+      } = response.data;
+
+      useAuthStore.getState().setAuth(user, newAccessToken, newRefreshToken);
+
+      // 대기 중인 요청들 처리
+      processQueue(null, newAccessToken);
+
+      // 원래 요청 재시도
+      originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+      return await apiClient(originalRequest);
+    } catch (refreshError) {
+      // 토큰 갱신 실패 시 대기 중인 요청들도 실패 처리
+      processQueue(refreshError as Error, null);
+      useAuthStore.getState().logout();
+      window.location.href = '/login';
+      throw refreshError;
+    } finally {
+      isRefreshing = false;
+    }
   },
 );
 

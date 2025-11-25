@@ -12,10 +12,11 @@ interface ProtectedRouteProps {
  * - 원래 접근하려던 경로를 state로 전달하여 로그인 후 복귀 가능
  */
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { user, token } = useAuthStore();
+  const { user, accessToken, refreshToken } = useAuthStore();
   const location = useLocation();
 
-  const isAuthenticated = user !== null && token !== null;
+  const isAuthenticated =
+    user !== null && accessToken !== null && refreshToken !== null;
 
   if (!isAuthenticated) {
     // 로그인 후 원래 접근하려던 페이지로 복귀할 수 있도록 현재 경로를 state로 전달
