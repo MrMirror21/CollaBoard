@@ -93,9 +93,6 @@ export function createApiClient(options: CreateApiClientOptions = {}) {
           .catch((err) => Promise.reject(err));
       }
 
-      originalRequest.retry = true;
-      isRefreshing = true;
-
       const { refreshToken } = useAuthStore.getState();
 
       // refreshToken이 없으면 로그아웃
@@ -104,6 +101,9 @@ export function createApiClient(options: CreateApiClientOptions = {}) {
         window.location.href = '/login';
         return Promise.reject(error);
       }
+
+      originalRequest.retry = true;
+      isRefreshing = true;
 
       try {
         // 별도 인스턴스로 토큰 갱신 요청 (무한 루프 방지)
