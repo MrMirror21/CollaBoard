@@ -24,7 +24,8 @@ type LoginFormData = z.infer<typeof loginSchema>;
 export function LoginForm() {
   const navigate = useNavigate();
   const setAuth = useAuthStore((state) => state.setAuth);
-  const { state: { from } = { from: '/' } } = useLocation();
+  const location = useLocation();
+  const from = location.state?.from;
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -58,11 +59,7 @@ export function LoginForm() {
 
       setAuth(user, accessToken, refreshToken);
       // 이전 페이지 존재 시 이전 페이지로 리다이렉트
-      if (from) {
-        navigate(from as string);
-      } else {
-        navigate('/dashboard');
-      }
+      navigate(from || '/dashboard');
     } catch (err) {
       setError('로그인에 실패했습니다. 이메일과 비밀번호를 확인해주세요.');
     } finally {
