@@ -49,7 +49,6 @@ export function LoginForm() {
         user: { id: string; email: string; name: string };
         accessToken: string;
         refreshToken: string;
-        password: string;
       }>('/auth/login', {
         email: _data.email,
         password: _data.password,
@@ -66,6 +65,8 @@ export function LoginForm() {
       }
     } catch (err) {
       setError('로그인에 실패했습니다. 이메일과 비밀번호를 확인해주세요.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
