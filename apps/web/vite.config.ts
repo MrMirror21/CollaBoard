@@ -38,13 +38,34 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'jsdom',
-    setupFiles: ['./src/test/setup.ts'],
+    setupFiles: ['./test/setup.ts'],
+    env: {
+      VITE_API_URL: 'http://localhost:4000',
+    },
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html'],
-      exclude: ['node_modules', 'src/test'],
+      exclude: ['node_modules', 'test'],
     },
     projects: [
+      // 유닛 테스트 프로젝트
+      {
+        extends: true,
+        test: {
+          name: 'unit',
+          include: ['src/**/*.test.{ts,tsx}'],
+          exclude: ['src/**/*.stories.*'],
+          env: {
+            VITE_API_URL: 'http://localhost:4000',
+          },
+          environmentOptions: {
+            jsdom: {
+              url: 'http://localhost:4000',
+            },
+          },
+        },
+      },
+      // Storybook 테스트 프로젝트
       {
         extends: true,
         plugins: [
