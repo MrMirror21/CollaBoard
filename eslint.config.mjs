@@ -86,7 +86,7 @@ export default [
   // vite.config.ts, vitest.config.ts 등 타입 체크 제외 파일
   {
     files: TYPECHECK_FREE_FILES,
-    ...tseslint.configs.disableTypeChecked,
+    extends: [tseslint.configs.disableTypeChecked],
     rules: {
       ...tseslint.configs.disableTypeChecked.rules,
       'import-x/no-unresolved': 'off',
