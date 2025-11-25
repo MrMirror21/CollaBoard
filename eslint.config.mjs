@@ -12,8 +12,14 @@ const SOURCE_FILES = ['**/*.{js,cjs,mjs,jsx,ts,tsx,cts,mts}'];
 const TYPECHECK_FREE_FILES = [
   '**/vitest.config.ts',
   '**/vite.config.ts',
+  '**/playwright.config.ts',
   '**/.storybook/**/*.ts',
   '**/.storybook/**/*.tsx',
+  '**/test/**/*.ts',
+  '**/test/**/*.tsx',
+  '**/*.shims.d.ts',
+  '**/stories/**/*.ts',
+  '**/stories/**/*.tsx',
 ];
 
 export default [
@@ -24,6 +30,8 @@ export default [
       '**/build/**',
       '**/.next/**',
       '**/coverage/**',
+      '**/public/**', // 자동 생성 파일 (mockServiceWorker.js 등)
+      '**/stories/**', // Storybook 예제 파일
       'eslint.config.mjs',
       'apps/server/prisma.config.ts',
     ],
@@ -120,6 +128,7 @@ export default [
       '@stylistic/comma-dangle': 'off',
       '@stylistic/no-multiple-empty-lines': 'off',
       '@stylistic/operator-linebreak': 'off',
+      '@stylistic/semi': 'off',
       // 불필요한 규칙 비활성화
       'arrow-body-style': 'off',
     },
