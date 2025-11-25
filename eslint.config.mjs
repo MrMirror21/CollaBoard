@@ -32,6 +32,7 @@ export default [
       '**/coverage/**',
       '**/public/**', // 자동 생성 파일 (mockServiceWorker.js 등)
       '**/stories/**', // Storybook 예제 파일
+      '**/generated/**', // Prisma 등 자동 생성 코드
       'eslint.config.mjs',
       'apps/server/prisma.config.ts',
     ],
@@ -120,6 +121,8 @@ export default [
       // @ 경로 별칭 관련 규칙 비활성화 (TypeScript가 이미 처리)
       'import-x/no-unresolved': 'off',
       'import-x/extensions': 'off',
+      // generated 폴더 내 패키지에 대한 상대 경로 import 허용
+      'import-x/no-relative-packages': 'off',
       // Prettier와 충돌하는 @stylistic 규칙들 비활성화
       '@stylistic/indent': 'off',
       '@stylistic/max-len': 'off',
