@@ -100,6 +100,7 @@ export default [
       'react/jsx-props-no-spreading': 'off',
       'react/require-default-props': 'off',
       'react/prop-types': 'off', // TypeScript 사용 시 불필요
+      'no-underscore-dangle': 'off',
       // 커스텀 Input 컴포넌트를 control로 인식하도록 설정
       'jsx-a11y/label-has-associated-control': [
         'error',
