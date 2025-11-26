@@ -4,11 +4,15 @@ import type {
   Pagination,
   CreateBoardRequest,
   CreatedBoard,
+  BoardDetail,
+  BoardDetailMember,
+  BoardDetailList,
 } from './boards.types.js';
 import {
   DEFAULT_BACKGROUND_COLOR,
   BOARD_MEMBER_ROLE,
 } from './boards.constants.js';
+import { BoardNotFoundError, BoardAccessDeniedError } from './boards.errors.js';
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 20;
@@ -179,5 +183,98 @@ export async function createBoard({
     createdAt: board.createdAt,
     updatedAt: board.updatedAt,
     ownerId: board.ownerId,
+  };
+}
+
+interface GetBoardByIdParams {
+  boardId: string;
+  userId: string;
+}
+
+/**
+ * 보드 상세 정보를 조회합니다.
+ * - 보드 소유자 또는 멤버만 조회 가능
+ * - 리스트 목록 (position 순 정렬), 멤버 목록 포함
+ * - lastAccessedAt 업데이트
+ */
+export async function getBoardById({
+  boardId,
+  userId,
+}: GetBoardByIdParams): Promise<BoardDetail> {
+  // 보드 존재 여부 확인
+  const board = await prisma.board.findUnique({
+    where: { id: boardId },
+    include: {
+      members: {
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              avatar: true,
+            },
+          },
+        },
+      },
+      lists: {
+        orderBy: { position: 'asc' },
+        include: {
+          _count: {
+            select: { cards: true },
+          },
+        },
+      },
+    },
+  });
+
+  if (!board) {
+    throw new BoardNotFoundError(boardId);
+  }
+
+  // 권한 확인: 소유자이거나 멤버인지 체크
+  const isOwner = board.ownerId === userId;
+  const isMember = board.members.some((member) => member.userId === userId);
+
+  if (!isOwner && !isMember) {
+    throw new BoardAccessDeniedError(boardId);
+  }
+
+  // lastAccessedAt 업데이트 (멤버인 경우)
+  if (isMember) {
+    await prisma.boardMember.updateMany({
+      where: {
+        boardId,
+        userId,
+      },
+      data: {
+        lastAccessedAt: new Date(),
+      },
+    });
+  }
+
+  // 응답 형식으로 변환
+  const members: BoardDetailMember[] = board.members.map((member) => ({
+    id: member.user.id,
+    name: member.user.name,
+    avatar: member.user.avatar,
+    role: member.role,
+  }));
+
+  const lists: BoardDetailList[] = board.lists.map((list) => ({
+    id: list.id,
+    title: list.title,
+    position: list.position,
+    cardsCount: list._count.cards,
+  }));
+
+  return {
+    id: board.id,
+    title: board.title,
+    backgroundColor: board.backgroundColor,
+    createdAt: board.createdAt,
+    updatedAt: board.updatedAt,
+    ownerId: board.ownerId,
+    members,
+    lists,
   };
 }
