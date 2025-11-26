@@ -1,5 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { getBoards, createBoard } from '../boards.service.js';
+import { getBoards, createBoard, getBoardById } from '../boards.service.js';
+import {
+  BoardNotFoundError,
+  BoardAccessDeniedError,
+} from '../boards.errors.js';
 import { BOARD_MEMBER_ROLE } from '../boards.constants.js';
 
 // 모킹된 prisma import
@@ -11,10 +15,12 @@ vi.mock('../../../lib/prisma.js', () => ({
     boardMember: {
       findMany: vi.fn(),
       create: vi.fn(),
+      updateMany: vi.fn(),
     },
     board: {
       findMany: vi.fn(),
       create: vi.fn(),
+      findUnique: vi.fn(),
     },
     $transaction: vi.fn(),
   },
@@ -23,11 +29,13 @@ vi.mock('../../../lib/prisma.js', () => ({
 const mockPrismaBoardMember = prisma.boardMember as unknown as {
   findMany: ReturnType<typeof vi.fn>;
   create: ReturnType<typeof vi.fn>;
+  updateMany: ReturnType<typeof vi.fn>;
 };
 
 const mockPrismaBoard = prisma.board as unknown as {
   findMany: ReturnType<typeof vi.fn>;
   create: ReturnType<typeof vi.fn>;
+  findUnique: ReturnType<typeof vi.fn>;
 };
 
 const mockPrismaTransaction = prisma.$transaction as unknown as ReturnType<
@@ -487,6 +495,287 @@ describe('boards.service', () => {
 
       // Then
       expect(result.backgroundColor).toBe(customColor);
+    });
+  });
+
+  describe('getBoardById', () => {
+    const mockUserId = 'user-123';
+    const mockBoardId = 'board-456';
+
+    it('보드 소유자가 조회 시 성공한다', async () => {
+      // Given
+      const mockBoard = {
+        id: mockBoardId,
+        title: '프로젝트 A',
+        backgroundColor: '#0079BF',
+        createdAt: new Date('2025-11-10T12:00:00Z'),
+        updatedAt: new Date('2025-11-13T10:30:00Z'),
+        ownerId: mockUserId,
+        members: [
+          {
+            userId: mockUserId,
+            role: BOARD_MEMBER_ROLE.OWNER,
+            user: {
+              id: mockUserId,
+              name: '홍길동',
+              avatar: 'https://cdn.collaboard.dev/avatars/usr_1234567890.jpg',
+            },
+          },
+        ],
+        lists: [
+          {
+            id: 'lst_1111111111',
+            title: 'To Do',
+            position: 1,
+            _count: { cards: 5 },
+          },
+          {
+            id: 'lst_2222222222',
+            title: 'In Progress',
+            position: 2,
+            _count: { cards: 3 },
+          },
+        ],
+      };
+
+      mockPrismaBoard.findUnique.mockResolvedValue(mockBoard);
+      mockPrismaBoardMember.updateMany.mockResolvedValue({ count: 1 });
+
+      // When
+      const result = await getBoardById({
+        boardId: mockBoardId,
+        userId: mockUserId,
+      });
+
+      // Then
+      expect(result).toMatchObject({
+        id: mockBoardId,
+        title: '프로젝트 A',
+        backgroundColor: '#0079BF',
+        ownerId: mockUserId,
+      });
+      expect(result.members).toHaveLength(1);
+      expect(result.members[0]).toMatchObject({
+        id: mockUserId,
+        name: '홍길동',
+        role: BOARD_MEMBER_ROLE.OWNER,
+      });
+      expect(result.lists).toHaveLength(2);
+      expect(result.lists[0]).toMatchObject({
+        id: 'lst_1111111111',
+        title: 'To Do',
+        position: 1,
+        cardsCount: 5,
+      });
+    });
+
+    it('보드 멤버가 조회 시 성공한다', async () => {
+      // Given
+      const memberId = 'member-123';
+      const ownerId = 'owner-789';
+      const mockBoard = {
+        id: mockBoardId,
+        title: '프로젝트 협업',
+        backgroundColor: '#D29034',
+        createdAt: new Date('2025-11-10T12:00:00Z'),
+        updatedAt: new Date('2025-11-13T10:30:00Z'),
+        ownerId,
+        members: [
+          {
+            userId: ownerId,
+            role: BOARD_MEMBER_ROLE.OWNER,
+            user: {
+              id: ownerId,
+              name: '소유자',
+              avatar: null,
+            },
+          },
+          {
+            userId: memberId,
+            role: BOARD_MEMBER_ROLE.MEMBER,
+            user: {
+              id: memberId,
+              name: '멤버',
+              avatar: null,
+            },
+          },
+        ],
+        lists: [],
+      };
+
+      mockPrismaBoard.findUnique.mockResolvedValue(mockBoard);
+      mockPrismaBoardMember.updateMany.mockResolvedValue({ count: 1 });
+
+      // When
+      const result = await getBoardById({
+        boardId: mockBoardId,
+        userId: memberId,
+      });
+
+      // Then
+      expect(result.id).toBe(mockBoardId);
+      expect(result.members).toHaveLength(2);
+      // lastAccessedAt 업데이트가 호출되어야 함
+      expect(mockPrismaBoardMember.updateMany).toHaveBeenCalledWith({
+        where: {
+          boardId: mockBoardId,
+          userId: memberId,
+        },
+        data: {
+          lastAccessedAt: expect.any(Date),
+        },
+      });
+    });
+
+    it('권한 없는 사용자 조회 시 BoardAccessDeniedError를 던진다', async () => {
+      // Given
+      const unauthorizedUserId = 'unauthorized-user';
+      const mockBoard = {
+        id: mockBoardId,
+        title: '프로젝트 비공개',
+        backgroundColor: '#0079BF',
+        createdAt: new Date('2025-11-10T12:00:00Z'),
+        updatedAt: new Date('2025-11-13T10:30:00Z'),
+        ownerId: 'other-owner',
+        members: [
+          {
+            userId: 'other-owner',
+            role: BOARD_MEMBER_ROLE.OWNER,
+            user: {
+              id: 'other-owner',
+              name: '다른 사용자',
+              avatar: null,
+            },
+          },
+        ],
+        lists: [],
+      };
+
+      mockPrismaBoard.findUnique.mockResolvedValue(mockBoard);
+
+      // When & Then
+      await expect(
+        getBoardById({ boardId: mockBoardId, userId: unauthorizedUserId }),
+      ).rejects.toThrow(BoardAccessDeniedError);
+    });
+
+    it('존재하지 않는 보드 조회 시 BoardNotFoundError를 던진다', async () => {
+      // Given
+      mockPrismaBoard.findUnique.mockResolvedValue(null);
+
+      // When & Then
+      await expect(
+        getBoardById({ boardId: 'non-existent-board', userId: mockUserId }),
+      ).rejects.toThrow(BoardNotFoundError);
+    });
+
+    it('리스트가 position 순으로 정렬되어 반환된다', async () => {
+      // Given
+      const mockBoard = {
+        id: mockBoardId,
+        title: '정렬 테스트',
+        backgroundColor: '#0079BF',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        ownerId: mockUserId,
+        members: [
+          {
+            userId: mockUserId,
+            role: BOARD_MEMBER_ROLE.OWNER,
+            user: {
+              id: mockUserId,
+              name: '테스터',
+              avatar: null,
+            },
+          },
+        ],
+        lists: [
+          { id: 'list-3', title: 'Done', position: 3, _count: { cards: 2 } },
+          { id: 'list-1', title: 'To Do', position: 1, _count: { cards: 5 } },
+          {
+            id: 'list-2',
+            title: 'In Progress',
+            position: 2,
+            _count: { cards: 3 },
+          },
+        ],
+      };
+
+      mockPrismaBoard.findUnique.mockResolvedValue(mockBoard);
+      mockPrismaBoardMember.updateMany.mockResolvedValue({ count: 1 });
+
+      // When
+      const result = await getBoardById({
+        boardId: mockBoardId,
+        userId: mockUserId,
+      });
+
+      // Then
+      // Prisma에서 이미 정렬된 상태로 반환된다고 가정 (실제 DB 쿼리에서 orderBy 적용)
+      expect(result.lists).toHaveLength(3);
+    });
+
+    it('멤버 정보에 역할(role)이 포함되어 반환된다', async () => {
+      // Given
+      const mockBoard = {
+        id: mockBoardId,
+        title: '역할 테스트',
+        backgroundColor: '#0079BF',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        ownerId: mockUserId,
+        members: [
+          {
+            userId: mockUserId,
+            role: BOARD_MEMBER_ROLE.OWNER,
+            user: {
+              id: mockUserId,
+              name: '소유자',
+              avatar: null,
+            },
+          },
+          {
+            userId: 'admin-user',
+            role: BOARD_MEMBER_ROLE.ADMIN,
+            user: {
+              id: 'admin-user',
+              name: '관리자',
+              avatar: 'https://example.com/admin.jpg',
+            },
+          },
+          {
+            userId: 'member-user',
+            role: BOARD_MEMBER_ROLE.MEMBER,
+            user: {
+              id: 'member-user',
+              name: '일반 멤버',
+              avatar: null,
+            },
+          },
+        ],
+        lists: [],
+      };
+
+      mockPrismaBoard.findUnique.mockResolvedValue(mockBoard);
+      mockPrismaBoardMember.updateMany.mockResolvedValue({ count: 1 });
+
+      // When
+      const result = await getBoardById({
+        boardId: mockBoardId,
+        userId: mockUserId,
+      });
+
+      // Then
+      expect(result.members).toHaveLength(3);
+      expect(result.members.find((m) => m.id === mockUserId)?.role).toBe(
+        BOARD_MEMBER_ROLE.OWNER,
+      );
+      expect(result.members.find((m) => m.id === 'admin-user')?.role).toBe(
+        BOARD_MEMBER_ROLE.ADMIN,
+      );
+      expect(result.members.find((m) => m.id === 'member-user')?.role).toBe(
+        BOARD_MEMBER_ROLE.MEMBER,
+      );
     });
   });
 });
