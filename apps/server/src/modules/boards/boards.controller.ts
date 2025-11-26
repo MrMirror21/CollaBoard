@@ -1,6 +1,11 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import { getBoards } from './boards.service.js';
-import type { GetBoardsQuery, GetBoardsResponse } from './boards.types.js';
+import { getBoards, createBoard } from './boards.service.js';
+import type {
+  GetBoardsQuery,
+  GetBoardsResponse,
+  CreateBoardRequest,
+  CreateBoardResponse,
+} from './boards.types.js';
 
 export async function boardsRoutes(fastify: FastifyInstance) {
   /**
@@ -43,6 +48,59 @@ export async function boardsRoutes(fastify: FastifyInstance) {
         await reply.status(500).send({
           success: false,
           error: '보드 목록을 조회하는 중 오류가 발생했습니다.',
+          timestamp: new Date().toISOString(),
+        });
+      }
+    },
+  );
+
+  /**
+   * POST /boards - 보드 생성
+   * 새로운 보드를 생성하고 생성자를 owner로 설정합니다.
+   */
+  fastify.post<{ Body: CreateBoardRequest }>(
+    '/',
+    {
+      preHandler: fastify.authenticate,
+      schema: {
+        body: {
+          type: 'object',
+          required: ['title'],
+          properties: {
+            title: { type: 'string', minLength: 1, maxLength: 100 },
+            backgroundColor: {
+              type: 'string',
+              pattern: '^#[0-9A-Fa-f]{6}$',
+              default: '#0079BF',
+            },
+          },
+        },
+      },
+    },
+    async (
+      request: FastifyRequest<{ Body: CreateBoardRequest }>,
+      reply: FastifyReply,
+    ) => {
+      try {
+        const { userId } = request.user;
+
+        const board = await createBoard({
+          userId,
+          data: request.body,
+        });
+
+        const response: CreateBoardResponse = {
+          success: true,
+          data: board,
+          timestamp: new Date().toISOString(),
+        };
+
+        await reply.status(201).send(response);
+      } catch (error) {
+        request.log.error(error);
+        await reply.status(500).send({
+          success: false,
+          error: '보드를 생성하는 중 오류가 발생했습니다.',
           timestamp: new Date().toISOString(),
         });
       }

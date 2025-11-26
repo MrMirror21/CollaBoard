@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { getBoards } from '../boards.service.js';
+import { getBoards, createBoard } from '../boards.service.js';
+import { BOARD_MEMBER_ROLE } from '../boards.constants.js';
 
 // 모킹된 prisma import
 import { prisma } from '../../../lib/prisma.js';
@@ -9,20 +10,29 @@ vi.mock('../../../lib/prisma.js', () => ({
   prisma: {
     boardMember: {
       findMany: vi.fn(),
+      create: vi.fn(),
     },
     board: {
       findMany: vi.fn(),
+      create: vi.fn(),
     },
+    $transaction: vi.fn(),
   },
 }));
 
 const mockPrismaBoardMember = prisma.boardMember as unknown as {
   findMany: ReturnType<typeof vi.fn>;
+  create: ReturnType<typeof vi.fn>;
 };
 
 const mockPrismaBoard = prisma.board as unknown as {
   findMany: ReturnType<typeof vi.fn>;
+  create: ReturnType<typeof vi.fn>;
 };
+
+const mockPrismaTransaction = prisma.$transaction as unknown as ReturnType<
+  typeof vi.fn
+>;
 
 describe('boards.service', () => {
   beforeEach(() => {
@@ -285,6 +295,198 @@ describe('boards.service', () => {
 
       // Then
       expect(result.items[0].lastAccessedAt).toEqual(lastAccessedDate);
+    });
+  });
+
+  describe('createBoard', () => {
+    const mockUserId = 'user-123';
+
+    it('유효한 요청으로 보드를 생성할 수 있다', async () => {
+      // Given
+      const createBoardData = {
+        title: '신규 프로젝트',
+        backgroundColor: '#0079BF',
+      };
+
+      const mockCreatedBoard = {
+        id: 'board-new-123',
+        title: '신규 프로젝트',
+        backgroundColor: '#0079BF',
+        createdAt: new Date('2025-11-13T12:00:00Z'),
+        updatedAt: new Date('2025-11-13T12:00:00Z'),
+        ownerId: mockUserId,
+      };
+
+      // 트랜잭션 모킹: 콜백을 실행하고 결과 반환
+      mockPrismaTransaction.mockImplementation(async (callback) => {
+        const tx = {
+          board: {
+            create: vi.fn().mockResolvedValue(mockCreatedBoard),
+          },
+          boardMember: {
+            create: vi.fn().mockResolvedValue({
+              id: 'member-123',
+              boardId: mockCreatedBoard.id,
+              userId: mockUserId,
+              role: BOARD_MEMBER_ROLE.OWNER,
+            }),
+          },
+        };
+        return callback(tx);
+      });
+
+      // When
+      const result = await createBoard({
+        userId: mockUserId,
+        data: createBoardData,
+      });
+
+      // Then
+      expect(result).toMatchObject({
+        id: 'board-new-123',
+        title: '신규 프로젝트',
+        backgroundColor: '#0079BF',
+        ownerId: mockUserId,
+      });
+      expect(result.createdAt).toEqual(new Date('2025-11-13T12:00:00Z'));
+      expect(result.updatedAt).toEqual(new Date('2025-11-13T12:00:00Z'));
+    });
+
+    it('backgroundColor를 지정하지 않으면 기본값이 적용된다', async () => {
+      // Given
+      const createBoardData = {
+        title: '신규 프로젝트',
+        // backgroundColor 생략
+      };
+
+      const mockCreatedBoard = {
+        id: 'board-new-456',
+        title: '신규 프로젝트',
+        backgroundColor: '#0079BF', // 기본값
+        createdAt: new Date('2025-11-13T12:00:00Z'),
+        updatedAt: new Date('2025-11-13T12:00:00Z'),
+        ownerId: mockUserId,
+      };
+
+      mockPrismaTransaction.mockImplementation(async (callback) => {
+        const tx = {
+          board: {
+            create: vi.fn().mockResolvedValue(mockCreatedBoard),
+          },
+          boardMember: {
+            create: vi.fn().mockResolvedValue({
+              id: 'member-456',
+              boardId: mockCreatedBoard.id,
+              userId: mockUserId,
+              role: BOARD_MEMBER_ROLE.OWNER,
+            }),
+          },
+        };
+        return callback(tx);
+      });
+
+      // When
+      const result = await createBoard({
+        userId: mockUserId,
+        data: createBoardData,
+      });
+
+      // Then
+      expect(result.backgroundColor).toBe('#0079BF');
+    });
+
+    it('보드 생성 시 생성자가 owner 역할로 BoardMember에 추가된다', async () => {
+      // Given
+      const createBoardData = {
+        title: '팀 프로젝트',
+      };
+
+      const mockCreatedBoard = {
+        id: 'board-team-789',
+        title: '팀 프로젝트',
+        backgroundColor: '#0079BF',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        ownerId: mockUserId,
+      };
+
+      const mockBoardMemberCreate = vi.fn().mockResolvedValue({
+        id: 'member-789',
+        boardId: mockCreatedBoard.id,
+        userId: mockUserId,
+        role: BOARD_MEMBER_ROLE.OWNER,
+      });
+
+      mockPrismaTransaction.mockImplementation(async (callback) => {
+        const tx = {
+          board: {
+            create: vi.fn().mockResolvedValue(mockCreatedBoard),
+          },
+          boardMember: {
+            create: mockBoardMemberCreate,
+          },
+        };
+        return callback(tx);
+      });
+
+      // When
+      await createBoard({
+        userId: mockUserId,
+        data: createBoardData,
+      });
+
+      // Then
+      expect(mockBoardMemberCreate).toHaveBeenCalledWith({
+        data: {
+          boardId: mockCreatedBoard.id,
+          userId: mockUserId,
+          role: BOARD_MEMBER_ROLE.OWNER,
+        },
+      });
+    });
+
+    it('사용자 지정 backgroundColor가 정상적으로 적용된다', async () => {
+      // Given
+      const customColor = '#D29034';
+      const createBoardData = {
+        title: '커스텀 색상 보드',
+        backgroundColor: customColor,
+      };
+
+      const mockCreatedBoard = {
+        id: 'board-custom-color',
+        title: '커스텀 색상 보드',
+        backgroundColor: customColor,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        ownerId: mockUserId,
+      };
+
+      mockPrismaTransaction.mockImplementation(async (callback) => {
+        const tx = {
+          board: {
+            create: vi.fn().mockResolvedValue(mockCreatedBoard),
+          },
+          boardMember: {
+            create: vi.fn().mockResolvedValue({
+              id: 'member-custom',
+              boardId: mockCreatedBoard.id,
+              userId: mockUserId,
+              role: BOARD_MEMBER_ROLE.OWNER,
+            }),
+          },
+        };
+        return callback(tx);
+      });
+
+      // When
+      const result = await createBoard({
+        userId: mockUserId,
+        data: createBoardData,
+      });
+
+      // Then
+      expect(result.backgroundColor).toBe(customColor);
     });
   });
 });

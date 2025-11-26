@@ -1,5 +1,14 @@
 import { prisma } from '../../lib/prisma.js';
-import type { BoardListItem, Pagination } from './boards.types.js';
+import type {
+  BoardListItem,
+  Pagination,
+  CreateBoardRequest,
+  CreatedBoard,
+} from './boards.types.js';
+import {
+  DEFAULT_BACKGROUND_COLOR,
+  BOARD_MEMBER_ROLE,
+} from './boards.constants.js';
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 20;
@@ -121,5 +130,54 @@ export async function getBoards({
       total,
       totalPages,
     },
+  };
+}
+
+interface CreateBoardParams {
+  userId: string;
+  data: CreateBoardRequest;
+}
+
+/**
+ * 새로운 보드를 생성합니다.
+ * - 생성자를 owner로 설정
+ * - BoardMember에 owner 역할로 자동 추가
+ */
+export async function createBoard({
+  userId,
+  data,
+}: CreateBoardParams): Promise<CreatedBoard> {
+  const { title, backgroundColor = DEFAULT_BACKGROUND_COLOR } = data;
+
+  // 트랜잭션으로 보드 생성과 멤버 추가를 원자적으로 처리
+  const board = await prisma.$transaction(async (tx) => {
+    // 보드 생성
+    const createdBoard = await tx.board.create({
+      data: {
+        title,
+        backgroundColor,
+        ownerId: userId,
+      },
+    });
+
+    // 생성자를 owner 역할로 BoardMember에 추가
+    await tx.boardMember.create({
+      data: {
+        boardId: createdBoard.id,
+        userId,
+        role: BOARD_MEMBER_ROLE.OWNER,
+      },
+    });
+
+    return createdBoard;
+  });
+
+  return {
+    id: board.id,
+    title: board.title,
+    backgroundColor: board.backgroundColor,
+    createdAt: board.createdAt,
+    updatedAt: board.updatedAt,
+    ownerId: board.ownerId,
   };
 }
