@@ -41,3 +41,26 @@ export interface GetBoardsResponse {
   };
   timestamp: string;
 }
+
+// 보드 생성 요청
+export interface CreateBoardRequest {
+  title: string;
+  backgroundColor?: string;
+}
+
+// 생성된 보드 정보
+export interface CreatedBoard {
+  id: string;
+  title: string;
+  backgroundColor: string;
+  createdAt: Date;
+  updatedAt: Date;
+  ownerId: string;
+}
+
+// 보드 생성 응답
+export interface CreateBoardResponse {
+  success: boolean;
+  data: CreatedBoard;
+  timestamp: string;
+}
