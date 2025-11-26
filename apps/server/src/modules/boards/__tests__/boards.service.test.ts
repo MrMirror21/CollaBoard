@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { getBoards, createBoard } from '../boards.service.js';
+import { BOARD_MEMBER_ROLE } from '../boards.constants.js';
 
 // 모킹된 prisma import
 import { prisma } from '../../../lib/prisma.js';
@@ -327,7 +328,7 @@ describe('boards.service', () => {
               id: 'member-123',
               boardId: mockCreatedBoard.id,
               userId: mockUserId,
-              role: 'owner',
+              role: BOARD_MEMBER_ROLE.OWNER,
             }),
           },
         };
@@ -377,7 +378,7 @@ describe('boards.service', () => {
               id: 'member-456',
               boardId: mockCreatedBoard.id,
               userId: mockUserId,
-              role: 'owner',
+              role: BOARD_MEMBER_ROLE.OWNER,
             }),
           },
         };
@@ -413,7 +414,7 @@ describe('boards.service', () => {
         id: 'member-789',
         boardId: mockCreatedBoard.id,
         userId: mockUserId,
-        role: 'owner',
+        role: BOARD_MEMBER_ROLE.OWNER,
       });
 
       mockPrismaTransaction.mockImplementation(async (callback) => {
@@ -439,7 +440,7 @@ describe('boards.service', () => {
         data: {
           boardId: mockCreatedBoard.id,
           userId: mockUserId,
-          role: 'owner',
+          role: BOARD_MEMBER_ROLE.OWNER,
         },
       });
     });
@@ -471,7 +472,7 @@ describe('boards.service', () => {
               id: 'member-custom',
               boardId: mockCreatedBoard.id,
               userId: mockUserId,
-              role: 'owner',
+              role: BOARD_MEMBER_ROLE.OWNER,
             }),
           },
         };

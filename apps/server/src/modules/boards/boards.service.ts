@@ -5,6 +5,10 @@ import type {
   CreateBoardRequest,
   CreatedBoard,
 } from './boards.types.js';
+import {
+  DEFAULT_BACKGROUND_COLOR,
+  BOARD_MEMBER_ROLE,
+} from './boards.constants.js';
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 20;
@@ -129,9 +133,6 @@ export async function getBoards({
   };
 }
 
-const DEFAULT_BACKGROUND_COLOR = '#0079BF';
-const BOARD_MEMBER_ROLE_OWNER = 'owner';
-
 interface CreateBoardParams {
   userId: string;
   data: CreateBoardRequest;
@@ -164,7 +165,7 @@ export async function createBoard({
       data: {
         boardId: createdBoard.id,
         userId,
-        role: BOARD_MEMBER_ROLE_OWNER,
+        role: BOARD_MEMBER_ROLE.OWNER,
       },
     });
 
