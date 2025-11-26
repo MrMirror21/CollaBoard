@@ -3,6 +3,7 @@ import cors from '@fastify/cors';
 import jwt from '@fastify/jwt';
 import { prisma } from './lib/prisma.js';
 import { authRoutes } from './modules/auth/auth.controller.js';
+import { boardsRoutes } from './modules/boards/boards.controller.js';
 import { JWT_SECRET, type JwtPayload } from './lib/jwt.js';
 
 declare module 'fastify' {
@@ -67,6 +68,9 @@ async function startServer() {
 
   // 인증 라우트 등록
   await fastify.register(authRoutes, { prefix: '/auth' });
+
+  // 보드 라우트 등록
+  await fastify.register(boardsRoutes, { prefix: '/boards' });
 
   // Graceful shutdown
   fastify.addHook('onClose', async () => {

@@ -53,15 +53,15 @@
 
 #### Day 5-7: 프론트엔드 인증 UI
 
-- [ ] React Router 설정
-- [ ] 로그인 페이지 UI
-- [ ] 회원가입 페이지 UI
-- [ ] React Hook Form + Zod 유효성 검사
-- [ ] TanStack Query 설정
-- [ ] 로그인/회원가입 API 연동
-- [ ] JWT 토큰 로컬 스토리지 저장
-- [ ] Axios Interceptor (토큰 자동 갱신)
-- [ ] Protected Route 구현
+- [ x ] React Router 설정
+- [ x ] 로그인 페이지 UI
+- [ x ] 회원가입 페이지 UI
+- [ x ] React Hook Form + Zod 유효성 검사
+- [ x ] TanStack Query 설정
+- [ x ] 로그인/회원가입 API 연동
+- [ x ] JWT 토큰 로컬 스토리지 저장
+- [ x ] Axios Interceptor (토큰 자동 갱신)
+- [ x ] Protected Route 구현
 
 ### 완료 기준
 
@@ -83,8 +83,8 @@
 
 #### Day 1-2: 백엔드 보드 API
 
-- [ ] Board 모델 Prisma 스키마 추가
-- [ ] 보드 목록 조회 API (`GET /boards`)
+- [ x ] Board 모델 Prisma 스키마 추가
+- [ x ] 보드 목록 조회 API (`GET /boards`)
 - [ ] 보드 생성 API (`POST /boards`)
 - [ ] 보드 상세 조회 API (`GET /boards/:id`)
 - [ ] 보드 수정 API (`PATCH /boards/:id`)
