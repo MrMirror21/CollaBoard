@@ -131,6 +131,24 @@ export interface UpdateBoardResponse {
   timestamp: string;
 }
 
+// 보드 삭제 요청 파라미터
+export interface DeleteBoardParams {
+  boardId: string;
+}
+
+// 삭제된 보드 정보
+export interface DeletedBoard {
+  id: string;
+  deletedAt: string;
+}
+
+// 보드 삭제 응답
+export interface DeleteBoardResponse {
+  success: boolean;
+  data: DeletedBoard;
+  timestamp: string;
+}
+
 // 에러 응답
 export interface ErrorResponse {
   success: boolean;

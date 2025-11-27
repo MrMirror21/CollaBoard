@@ -4,8 +4,13 @@ import {
   createBoard,
   getBoardById,
   updateBoard,
+  deleteBoard,
 } from './boards.service.js';
-import { requireBoardAccess, requireBoardAdmin } from './boards.middleware.js';
+import {
+  requireBoardAccess,
+  requireBoardAdmin,
+  requireBoardOwner,
+} from './boards.middleware.js';
 import type {
   GetBoardsQuery,
   GetBoardsResponse,
@@ -16,6 +21,8 @@ import type {
   UpdateBoardParams,
   UpdateBoardRequest,
   UpdateBoardResponse,
+  DeleteBoardParams,
+  DeleteBoardResponse,
 } from './boards.types.js';
 
 export async function boardsRoutes(fastify: FastifyInstance) {
@@ -222,6 +229,52 @@ export async function boardsRoutes(fastify: FastifyInstance) {
         await reply.status(500).send({
           success: false,
           error: '보드를 수정하는 중 오류가 발생했습니다.',
+          timestamp: new Date().toISOString(),
+        });
+      }
+    },
+  );
+
+  /**
+   * DELETE /boards/:boardId - 보드 삭제
+   * 보드 소유자만 삭제 가능합니다.
+   * CASCADE 삭제로 관련 리스트, 카드, 라벨, 멤버도 함께 삭제됩니다.
+   */
+  fastify.delete<{ Params: DeleteBoardParams }>(
+    '/:boardId',
+    {
+      preHandler: [fastify.authenticate, requireBoardOwner],
+      schema: {
+        params: {
+          type: 'object',
+          required: ['boardId'],
+          properties: {
+            boardId: { type: 'string' },
+          },
+        },
+      },
+    },
+    async (
+      request: FastifyRequest<{ Params: DeleteBoardParams }>,
+      reply: FastifyReply,
+    ) => {
+      try {
+        const { boardId } = request.params;
+
+        const deletedBoard = await deleteBoard({ boardId });
+
+        const response: DeleteBoardResponse = {
+          success: true,
+          data: deletedBoard,
+          timestamp: new Date().toISOString(),
+        };
+
+        await reply.send(response);
+      } catch (error) {
+        request.log.error(error);
+        await reply.status(500).send({
+          success: false,
+          error: '보드를 삭제하는 중 오류가 발생했습니다.',
           timestamp: new Date().toISOString(),
         });
       }

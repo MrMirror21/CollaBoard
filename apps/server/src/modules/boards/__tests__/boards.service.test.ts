@@ -4,6 +4,7 @@ import {
   createBoard,
   getBoardById,
   updateBoard,
+  deleteBoard,
 } from '../boards.service.js';
 import { BoardNotFoundError } from '../boards.errors.js';
 import { BOARD_MEMBER_ROLE } from '../boards.constants.js';
@@ -24,6 +25,7 @@ vi.mock('../../../lib/prisma.js', () => ({
       create: vi.fn(),
       findUnique: vi.fn(),
       update: vi.fn(),
+      delete: vi.fn(),
     },
     $transaction: vi.fn(),
   },
@@ -40,6 +42,7 @@ const mockPrismaBoard = prisma.board as unknown as {
   create: ReturnType<typeof vi.fn>;
   findUnique: ReturnType<typeof vi.fn>;
   update: ReturnType<typeof vi.fn>;
+  delete: ReturnType<typeof vi.fn>;
 };
 
 const mockPrismaTransaction = prisma.$transaction as unknown as ReturnType<
@@ -906,6 +909,69 @@ describe('boards.service', () => {
       expect(mockPrismaBoard.update).toHaveBeenCalledWith({
         where: { id: mockBoardId },
         data: {},
+      });
+    });
+  });
+
+  describe('deleteBoard', () => {
+    const mockBoardId = 'board-123';
+
+    it('소유자가 보드를 삭제할 수 있다', async () => {
+      // Given
+      mockPrismaBoard.findUnique.mockResolvedValue({ id: mockBoardId });
+      mockPrismaBoard.delete.mockResolvedValue({ id: mockBoardId });
+
+      // When
+      const result = await deleteBoard({ boardId: mockBoardId });
+
+      // Then
+      expect(result.id).toBe(mockBoardId);
+      expect(result.deletedAt).toBeDefined();
+      expect(typeof result.deletedAt).toBe('string');
+      expect(mockPrismaBoard.delete).toHaveBeenCalledWith({
+        where: { id: mockBoardId },
+      });
+    });
+
+    it('존재하지 않는 보드 삭제 시 BoardNotFoundError를 던진다', async () => {
+      // Given
+      mockPrismaBoard.findUnique.mockResolvedValue(null);
+
+      // When & Then
+      await expect(
+        deleteBoard({ boardId: 'non-existent-board' }),
+      ).rejects.toThrow(BoardNotFoundError);
+      expect(mockPrismaBoard.delete).not.toHaveBeenCalled();
+    });
+
+    it('삭제 성공 시 deletedAt이 ISO 문자열 형식으로 반환된다', async () => {
+      // Given
+      mockPrismaBoard.findUnique.mockResolvedValue({ id: mockBoardId });
+      mockPrismaBoard.delete.mockResolvedValue({ id: mockBoardId });
+
+      // When
+      const result = await deleteBoard({ boardId: mockBoardId });
+
+      // Then
+      // ISO 8601 형식 검증
+      expect(result.deletedAt).toMatch(
+        /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z$/,
+      );
+    });
+
+    it('삭제 시 prisma.board.delete가 올바른 boardId로 호출된다', async () => {
+      // Given
+      const targetBoardId = 'target-board-for-delete';
+      mockPrismaBoard.findUnique.mockResolvedValue({ id: targetBoardId });
+      mockPrismaBoard.delete.mockResolvedValue({ id: targetBoardId });
+
+      // When
+      await deleteBoard({ boardId: targetBoardId });
+
+      // Then
+      expect(mockPrismaBoard.delete).toHaveBeenCalledTimes(1);
+      expect(mockPrismaBoard.delete).toHaveBeenCalledWith({
+        where: { id: targetBoardId },
       });
     });
   });
