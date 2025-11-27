@@ -9,6 +9,7 @@ import type {
   BoardDetailList,
   UpdateBoardRequest,
   UpdatedBoard,
+  DeletedBoard,
 } from './boards.types.js';
 import {
   DEFAULT_BACKGROUND_COLOR,
@@ -317,5 +318,38 @@ export async function updateBoard({
     title: updatedBoard.title,
     backgroundColor: updatedBoard.backgroundColor,
     updatedAt: updatedBoard.updatedAt,
+  };
+}
+
+interface DeleteBoardParams {
+  boardId: string;
+}
+
+/**
+ * 보드를 삭제합니다.
+ * - 권한 체크는 미들웨어에서 처리 (requireBoardOwner)
+ * - CASCADE 삭제로 관련 리스트, 카드, 라벨, 멤버 자동 삭제
+ */
+export async function deleteBoard({
+  boardId,
+}: DeleteBoardParams): Promise<DeletedBoard> {
+  // 보드 존재 여부 확인
+  const existingBoard = await prisma.board.findUnique({
+    where: { id: boardId },
+    select: { id: true },
+  });
+
+  if (!existingBoard) {
+    throw new BoardNotFoundError(boardId);
+  }
+
+  // 보드 삭제 (CASCADE로 관련 데이터 자동 삭제)
+  await prisma.board.delete({
+    where: { id: boardId },
+  });
+
+  return {
+    id: boardId,
+    deletedAt: new Date().toISOString(),
   };
 }
