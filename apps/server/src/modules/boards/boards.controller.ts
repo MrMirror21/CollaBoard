@@ -1,6 +1,11 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import { getBoards, createBoard, getBoardById } from './boards.service.js';
-import { requireBoardAccess } from './boards.middleware.js';
+import {
+  getBoards,
+  createBoard,
+  getBoardById,
+  updateBoard,
+} from './boards.service.js';
+import { requireBoardAccess, requireBoardAdmin } from './boards.middleware.js';
 import type {
   GetBoardsQuery,
   GetBoardsResponse,
@@ -8,6 +13,9 @@ import type {
   CreateBoardResponse,
   GetBoardByIdParams,
   GetBoardByIdResponse,
+  UpdateBoardParams,
+  UpdateBoardRequest,
+  UpdateBoardResponse,
 } from './boards.types.js';
 
 export async function boardsRoutes(fastify: FastifyInstance) {
@@ -151,6 +159,69 @@ export async function boardsRoutes(fastify: FastifyInstance) {
         await reply.status(500).send({
           success: false,
           error: '보드를 조회하는 중 오류가 발생했습니다.',
+          timestamp: new Date().toISOString(),
+        });
+      }
+    },
+  );
+
+  /**
+   * PATCH /boards/:boardId - 보드 수정
+   * 보드 소유자 또는 admin 역할만 수정 가능합니다.
+   * title, backgroundColor 중 원하는 필드만 부분 업데이트 가능합니다.
+   */
+  fastify.patch<{ Params: UpdateBoardParams; Body: UpdateBoardRequest }>(
+    '/:boardId',
+    {
+      preHandler: [fastify.authenticate, requireBoardAdmin],
+      schema: {
+        params: {
+          type: 'object',
+          required: ['boardId'],
+          properties: {
+            boardId: { type: 'string' },
+          },
+        },
+        body: {
+          type: 'object',
+          properties: {
+            title: { type: 'string', minLength: 1, maxLength: 100 },
+            backgroundColor: {
+              type: 'string',
+              pattern: '^#[0-9A-Fa-f]{6}$',
+            },
+          },
+          additionalProperties: false,
+        },
+      },
+    },
+    async (
+      request: FastifyRequest<{
+        Params: UpdateBoardParams;
+        Body: UpdateBoardRequest;
+      }>,
+      reply: FastifyReply,
+    ) => {
+      try {
+        const { boardId } = request.params;
+
+        const board = await updateBoard({
+          boardId,
+          data: request.body,
+        });
+
+        const response: UpdateBoardResponse = {
+          success: true,
+          data: board,
+          timestamp: new Date().toISOString(),
+        };
+
+        await reply.send(response);
+      } catch (error) {
+        request.log.error(error);
+        await reply.status(500).send({
+          success: false,
+          error: '보드를 수정하는 중 오류가 발생했습니다.',
           timestamp: new Date().toISOString(),
         });
       }

@@ -105,6 +105,32 @@ export interface GetBoardByIdResponse {
   timestamp: string;
 }
 
+// 보드 수정 요청
+export interface UpdateBoardRequest {
+  title?: string;
+  backgroundColor?: string;
+}
+
+// 보드 수정 요청 파라미터
+export interface UpdateBoardParams {
+  boardId: string;
+}
+
+// 수정된 보드 정보
+export interface UpdatedBoard {
+  id: string;
+  title: string;
+  backgroundColor: string;
+  updatedAt: Date;
+}
+
+// 보드 수정 응답
+export interface UpdateBoardResponse {
+  success: boolean;
+  data: UpdatedBoard;
+  timestamp: string;
+}
+
 // 에러 응답
 export interface ErrorResponse {
   success: boolean;
