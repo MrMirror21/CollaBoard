@@ -271,7 +271,7 @@ export async function getBoardById({
   };
 }
 
-interface UpdateBoardParams {
+interface UpdateBoardServiceParams {
   boardId: string;
   data: UpdateBoardRequest;
 }
@@ -284,7 +284,7 @@ interface UpdateBoardParams {
 export async function updateBoard({
   boardId,
   data,
-}: UpdateBoardParams): Promise<UpdatedBoard> {
+}: UpdateBoardServiceParams): Promise<UpdatedBoard> {
   // 보드 존재 여부 확인
   const existingBoard = await prisma.board.findUnique({
     where: { id: boardId },
