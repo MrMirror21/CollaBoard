@@ -7,6 +7,8 @@ import type {
   BoardDetail,
   BoardDetailMember,
   BoardDetailList,
+  UpdateBoardRequest,
+  UpdatedBoard,
 } from './boards.types.js';
 import {
   DEFAULT_BACKGROUND_COLOR,
@@ -266,5 +268,54 @@ export async function getBoardById({
     ownerId: board.ownerId,
     members,
     lists,
+  };
+}
+
+interface UpdateBoardParams {
+  boardId: string;
+  data: UpdateBoardRequest;
+}
+
+/**
+ * 보드를 수정합니다.
+ * - 권한 체크는 미들웨어에서 처리 (requireBoardAdmin)
+ * - title, backgroundColor 중 원하는 필드만 부분 업데이트 가능
+ */
+export async function updateBoard({
+  boardId,
+  data,
+}: UpdateBoardParams): Promise<UpdatedBoard> {
+  // 보드 존재 여부 확인
+  const existingBoard = await prisma.board.findUnique({
+    where: { id: boardId },
+    select: { id: true },
+  });
+
+  if (!existingBoard) {
+    throw new BoardNotFoundError(boardId);
+  }
+
+  // 업데이트할 데이터 구성 (제공된 필드만 업데이트)
+  const updateData: { title?: string; backgroundColor?: string } = {};
+
+  if (data.title !== undefined) {
+    updateData.title = data.title;
+  }
+
+  if (data.backgroundColor !== undefined) {
+    updateData.backgroundColor = data.backgroundColor;
+  }
+
+  // 보드 업데이트
+  const updatedBoard = await prisma.board.update({
+    where: { id: boardId },
+    data: updateData,
+  });
+
+  return {
+    id: updatedBoard.id,
+    title: updatedBoard.title,
+    backgroundColor: updatedBoard.backgroundColor,
+    updatedAt: updatedBoard.updatedAt,
   };
 }

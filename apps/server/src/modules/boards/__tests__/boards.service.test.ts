@@ -1,5 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { getBoards, createBoard, getBoardById } from '../boards.service.js';
+import {
+  getBoards,
+  createBoard,
+  getBoardById,
+  updateBoard,
+} from '../boards.service.js';
 import { BoardNotFoundError } from '../boards.errors.js';
 import { BOARD_MEMBER_ROLE } from '../boards.constants.js';
 
@@ -18,6 +23,7 @@ vi.mock('../../../lib/prisma.js', () => ({
       findMany: vi.fn(),
       create: vi.fn(),
       findUnique: vi.fn(),
+      update: vi.fn(),
     },
     $transaction: vi.fn(),
   },
@@ -33,6 +39,7 @@ const mockPrismaBoard = prisma.board as unknown as {
   findMany: ReturnType<typeof vi.fn>;
   create: ReturnType<typeof vi.fn>;
   findUnique: ReturnType<typeof vi.fn>;
+  update: ReturnType<typeof vi.fn>;
 };
 
 const mockPrismaTransaction = prisma.$transaction as unknown as ReturnType<
@@ -744,6 +751,162 @@ describe('boards.service', () => {
       expect(result.members.find((m) => m.id === 'member-user')?.role).toBe(
         BOARD_MEMBER_ROLE.MEMBER,
       );
+    });
+  });
+
+  describe('updateBoard', () => {
+    const mockBoardId = 'board-123';
+
+    it('제목과 배경색 모두 수정할 수 있다', async () => {
+      // Given
+      const updateData = {
+        title: '수정된 프로젝트',
+        backgroundColor: '#00C853',
+      };
+
+      const mockUpdatedBoard = {
+        id: mockBoardId,
+        title: '수정된 프로젝트',
+        backgroundColor: '#00C853',
+        createdAt: new Date('2025-11-10T12:00:00Z'),
+        updatedAt: new Date('2025-11-13T12:05:00Z'),
+        ownerId: 'user-123',
+      };
+
+      mockPrismaBoard.findUnique.mockResolvedValue({ id: mockBoardId });
+      mockPrismaBoard.update.mockResolvedValue(mockUpdatedBoard);
+
+      // When
+      const result = await updateBoard({
+        boardId: mockBoardId,
+        data: updateData,
+      });
+
+      // Then
+      expect(result).toMatchObject({
+        id: mockBoardId,
+        title: '수정된 프로젝트',
+        backgroundColor: '#00C853',
+      });
+      expect(result.updatedAt).toEqual(new Date('2025-11-13T12:05:00Z'));
+      expect(mockPrismaBoard.update).toHaveBeenCalledWith({
+        where: { id: mockBoardId },
+        data: {
+          title: '수정된 프로젝트',
+          backgroundColor: '#00C853',
+        },
+      });
+    });
+
+    it('제목만 수정할 수 있다 (부분 업데이트)', async () => {
+      // Given
+      const updateData = {
+        title: '제목만 수정',
+      };
+
+      const mockUpdatedBoard = {
+        id: mockBoardId,
+        title: '제목만 수정',
+        backgroundColor: '#0079BF',
+        createdAt: new Date('2025-11-10T12:00:00Z'),
+        updatedAt: new Date('2025-11-13T12:05:00Z'),
+        ownerId: 'user-123',
+      };
+
+      mockPrismaBoard.findUnique.mockResolvedValue({ id: mockBoardId });
+      mockPrismaBoard.update.mockResolvedValue(mockUpdatedBoard);
+
+      // When
+      const result = await updateBoard({
+        boardId: mockBoardId,
+        data: updateData,
+      });
+
+      // Then
+      expect(result.title).toBe('제목만 수정');
+      expect(mockPrismaBoard.update).toHaveBeenCalledWith({
+        where: { id: mockBoardId },
+        data: {
+          title: '제목만 수정',
+        },
+      });
+    });
+
+    it('배경색만 수정할 수 있다 (부분 업데이트)', async () => {
+      // Given
+      const updateData = {
+        backgroundColor: '#FF5733',
+      };
+
+      const mockUpdatedBoard = {
+        id: mockBoardId,
+        title: '기존 제목',
+        backgroundColor: '#FF5733',
+        createdAt: new Date('2025-11-10T12:00:00Z'),
+        updatedAt: new Date('2025-11-13T12:05:00Z'),
+        ownerId: 'user-123',
+      };
+
+      mockPrismaBoard.findUnique.mockResolvedValue({ id: mockBoardId });
+      mockPrismaBoard.update.mockResolvedValue(mockUpdatedBoard);
+
+      // When
+      const result = await updateBoard({
+        boardId: mockBoardId,
+        data: updateData,
+      });
+
+      // Then
+      expect(result.backgroundColor).toBe('#FF5733');
+      expect(mockPrismaBoard.update).toHaveBeenCalledWith({
+        where: { id: mockBoardId },
+        data: {
+          backgroundColor: '#FF5733',
+        },
+      });
+    });
+
+    it('존재하지 않는 보드 수정 시 BoardNotFoundError를 던진다', async () => {
+      // Given
+      mockPrismaBoard.findUnique.mockResolvedValue(null);
+
+      // When & Then
+      await expect(
+        updateBoard({
+          boardId: 'non-existent-board',
+          data: { title: '수정 시도' },
+        }),
+      ).rejects.toThrow(BoardNotFoundError);
+    });
+
+    it('빈 데이터로 수정 시에도 동작한다', async () => {
+      // Given
+      const updateData = {};
+
+      const mockUpdatedBoard = {
+        id: mockBoardId,
+        title: '기존 제목',
+        backgroundColor: '#0079BF',
+        createdAt: new Date('2025-11-10T12:00:00Z'),
+        updatedAt: new Date('2025-11-13T12:05:00Z'),
+        ownerId: 'user-123',
+      };
+
+      mockPrismaBoard.findUnique.mockResolvedValue({ id: mockBoardId });
+      mockPrismaBoard.update.mockResolvedValue(mockUpdatedBoard);
+
+      // When
+      const result = await updateBoard({
+        boardId: mockBoardId,
+        data: updateData,
+      });
+
+      // Then
+      expect(result.id).toBe(mockBoardId);
+      expect(mockPrismaBoard.update).toHaveBeenCalledWith({
+        where: { id: mockBoardId },
+        data: {},
+      });
     });
   });
 });
