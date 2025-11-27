@@ -1,9 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { getBoards, createBoard, getBoardById } from '../boards.service.js';
-import {
-  BoardNotFoundError,
-  BoardAccessDeniedError,
-} from '../boards.errors.js';
+import { BoardNotFoundError } from '../boards.errors.js';
 import { BOARD_MEMBER_ROLE } from '../boards.constants.js';
 
 // 모킹된 prisma import
@@ -627,37 +624,8 @@ describe('boards.service', () => {
       });
     });
 
-    it('권한 없는 사용자 조회 시 BoardAccessDeniedError를 던진다', async () => {
-      // Given
-      const unauthorizedUserId = 'unauthorized-user';
-      const mockBoard = {
-        id: mockBoardId,
-        title: '프로젝트 비공개',
-        backgroundColor: '#0079BF',
-        createdAt: new Date('2025-11-10T12:00:00Z'),
-        updatedAt: new Date('2025-11-13T10:30:00Z'),
-        ownerId: 'other-owner',
-        members: [
-          {
-            userId: 'other-owner',
-            role: BOARD_MEMBER_ROLE.OWNER,
-            user: {
-              id: 'other-owner',
-              name: '다른 사용자',
-              avatar: null,
-            },
-          },
-        ],
-        lists: [],
-      };
-
-      mockPrismaBoard.findUnique.mockResolvedValue(mockBoard);
-
-      // When & Then
-      await expect(
-        getBoardById({ boardId: mockBoardId, userId: unauthorizedUserId }),
-      ).rejects.toThrow(BoardAccessDeniedError);
-    });
+    // 권한 체크는 미들웨어(requireBoardAccess)에서 처리하므로
+    // 서비스에서는 별도 권한 테스트 불필요
 
     it('존재하지 않는 보드 조회 시 BoardNotFoundError를 던진다', async () => {
       // Given

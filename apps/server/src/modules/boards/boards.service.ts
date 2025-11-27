@@ -12,7 +12,7 @@ import {
   DEFAULT_BACKGROUND_COLOR,
   BOARD_MEMBER_ROLE,
 } from './boards.constants.js';
-import { BoardNotFoundError, BoardAccessDeniedError } from './boards.errors.js';
+import { BoardNotFoundError } from './boards.errors.js';
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 20;
@@ -193,7 +193,7 @@ interface GetBoardByIdParams {
 
 /**
  * 보드 상세 정보를 조회합니다.
- * - 보드 소유자 또는 멤버만 조회 가능
+ * - 권한 체크는 미들웨어에서 처리 (requireBoardAccess)
  * - 리스트 목록 (position 순 정렬), 멤버 목록 포함
  * - lastAccessedAt 업데이트
  */
@@ -201,7 +201,7 @@ export async function getBoardById({
   boardId,
   userId,
 }: GetBoardByIdParams): Promise<BoardDetail> {
-  // 보드 존재 여부 확인
+  // 보드 조회
   const board = await prisma.board.findUnique({
     where: { id: boardId },
     include: {
@@ -231,26 +231,16 @@ export async function getBoardById({
     throw new BoardNotFoundError(boardId);
   }
 
-  // 권한 확인: 소유자이거나 멤버인지 체크
-  const isOwner = board.ownerId === userId;
-  const isMember = board.members.some((member) => member.userId === userId);
-
-  if (!isOwner && !isMember) {
-    throw new BoardAccessDeniedError(boardId);
-  }
-
-  // lastAccessedAt 업데이트 (멤버인 경우)
-  if (isMember) {
-    await prisma.boardMember.updateMany({
-      where: {
-        boardId,
-        userId,
-      },
-      data: {
-        lastAccessedAt: new Date(),
-      },
-    });
-  }
+  // lastAccessedAt 업데이트
+  await prisma.boardMember.updateMany({
+    where: {
+      boardId,
+      userId,
+    },
+    data: {
+      lastAccessedAt: new Date(),
+    },
+  });
 
   // 응답 형식으로 변환
   const members: BoardDetailMember[] = board.members.map((member) => ({

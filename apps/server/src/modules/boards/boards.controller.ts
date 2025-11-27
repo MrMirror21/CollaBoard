@@ -1,6 +1,6 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { getBoards, createBoard, getBoardById } from './boards.service.js';
-import { BoardNotFoundError, BoardAccessDeniedError } from './boards.errors.js';
+import { requireBoardAccess } from './boards.middleware.js';
 import type {
   GetBoardsQuery,
   GetBoardsResponse,
@@ -118,7 +118,7 @@ export async function boardsRoutes(fastify: FastifyInstance) {
   fastify.get<{ Params: GetBoardByIdParams }>(
     '/:boardId',
     {
-      preHandler: fastify.authenticate,
+      preHandler: [fastify.authenticate, requireBoardAccess],
       schema: {
         params: {
           type: 'object',
@@ -147,24 +147,6 @@ export async function boardsRoutes(fastify: FastifyInstance) {
 
         await reply.send(response);
       } catch (error) {
-        if (error instanceof BoardNotFoundError) {
-          await reply.status(404).send({
-            success: false,
-            error: '보드를 찾을 수 없습니다.',
-            timestamp: new Date().toISOString(),
-          });
-          return;
-        }
-
-        if (error instanceof BoardAccessDeniedError) {
-          await reply.status(403).send({
-            success: false,
-            error: '보드에 접근할 권한이 없습니다.',
-            timestamp: new Date().toISOString(),
-          });
-          return;
-        }
-
         request.log.error(error);
         await reply.status(500).send({
           success: false,
