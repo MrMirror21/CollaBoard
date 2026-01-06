@@ -3,8 +3,8 @@ import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 import MockAdapter from 'axios-mock-adapter';
-import { useInfiniteBoards } from '../useInfiniteBoards';
 import apiClient from '@/lib/api/api-client';
+import { useInfiniteBoards } from '../useInfiniteBoards';
 import type { GetBoardsResponse, BoardSummary } from '../useBoards';
 
 const createMockBoardSummary = (id: string): BoardSummary => ({

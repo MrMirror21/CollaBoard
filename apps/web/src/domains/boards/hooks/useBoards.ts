@@ -34,7 +34,7 @@ export interface BoardSummary {
   backgroundColor: string;
   createdAt: string;
   updatedAt: string;
-  lastAccessedAt: string;
+  lastAccessedAt: string | null;
   listsCount: number;
   cardsCount: number;
   members: BoardMemberSummary[];

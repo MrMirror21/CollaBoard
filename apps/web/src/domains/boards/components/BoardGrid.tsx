@@ -24,7 +24,7 @@ function BoardGrid() {
     if (inView && hasNextPage) {
       fetchNextPage();
     }
-  }, [inView, hasNextPage, fetchNextPage, isLoading, error]);
+  }, [inView, hasNextPage, fetchNextPage]);
 
   if (isLoading)
     // eslint-disable-next-line @stylistic/nonblock-statement-body-position
