@@ -6,6 +6,7 @@ import RegisterPage from '@/app/(auth)/register/page';
 import { ProtectedRoute } from '@/domains/auth/components';
 import { PageLayout } from '@/components/layout';
 import DashboardPage from './app/dashboard/page';
+import BoardDetailPage from './app/boards/detail/page';
 
 function App() {
   return (
@@ -17,6 +18,7 @@ function App() {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/boards/:boardId" element={<BoardDetailPage />} />
 
             {/* 인증 필요 라우트 */}
             {/** <Route
