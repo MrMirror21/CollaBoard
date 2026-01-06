@@ -8,19 +8,19 @@ const REFETCH_INTERVAL_MS = 1000 * 60 * 5;
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 20;
 
-interface ApiSuccessResponse<TData> {
+export interface ApiSuccessResponse<TData> {
   success: true;
   data: TData;
   timestamp: string;
 }
 
-interface ApiErrorResponse {
+export interface ApiErrorResponse {
   success: false;
   error: { code: string; message: string };
   timestamp: string;
 }
 
-type ApiResponse<TData> = ApiSuccessResponse<TData> | ApiErrorResponse;
+export type ApiResponse<TData> = ApiSuccessResponse<TData> | ApiErrorResponse;
 
 export interface BoardMemberSummary {
   id: string;
@@ -59,7 +59,7 @@ export interface GetBoardsParams {
   limit?: number;
 }
 
-function assertApiSuccess<TData>(
+export function assertApiSuccess<TData>(
   response: ApiResponse<TData>,
 ): asserts response is ApiSuccessResponse<TData> {
   if (response.success) return;
