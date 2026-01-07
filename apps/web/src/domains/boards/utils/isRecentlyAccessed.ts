@@ -10,6 +10,10 @@ export function isRecentlyAccessed(lastAccessedAt: string | null): boolean {
   }
 
   const accessDate = new Date(lastAccessedAt);
+  if (Number.isNaN(accessDate.getTime())) {
+    return false;
+  }
+
   const now = new Date();
   const diffInDays = (now.getTime() - accessDate.getTime()) / DAY_MS;
 
