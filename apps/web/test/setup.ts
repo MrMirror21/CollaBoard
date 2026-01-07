@@ -1,6 +1,17 @@
+/* eslint-disable class-methods-use-this */
 import '@testing-library/jest-dom';
 import { cleanup } from '@testing-library/react';
 import { afterEach, beforeEach } from 'vitest';
+
+// ResizeObserver 모킹 (headlessui/react 컴포넌트에서 사용)
+class ResizeObserverMock {
+  observe() {}
+
+  unobserve() {}
+
+  disconnect() {}
+}
+window.ResizeObserver = ResizeObserverMock;
 
 // localStorage 모킹
 const localStorageMock = (() => {
