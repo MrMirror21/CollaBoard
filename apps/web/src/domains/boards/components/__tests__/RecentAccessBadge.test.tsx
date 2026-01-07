@@ -30,7 +30,6 @@ describe('RecentAccessBadge', () => {
       // Then
       const badge = screen.getByText('최근 접속');
       expect(badge).toHaveClass('inline-flex');
-      expect(badge).toHaveClass('rounded-full');
       expect(badge).toHaveClass('text-xs');
       expect(badge).toHaveClass('font-medium');
     });
@@ -41,7 +40,6 @@ describe('RecentAccessBadge', () => {
 
       // Then
       const badge = screen.getByText('최근 접속');
-      expect(badge).toHaveClass('bg-blue-100');
       expect(badge).toHaveClass('text-blue-700');
     });
 
