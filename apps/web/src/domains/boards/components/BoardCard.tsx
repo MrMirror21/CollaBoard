@@ -28,6 +28,7 @@ const INFO_HEIGHT_PX = 60;
 export function BoardCard({ board, onEdit, onDelete }: BoardCardProps) {
   const navigate = useNavigate();
   const [isHovered, setIsHovered] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
 
   const showRecentBadge = isRecentlyAccessed(board.lastAccessedAt);
   const relativeTime = formatRelativeTime(board.updatedAt);
@@ -64,12 +65,18 @@ export function BoardCard({ board, onEdit, onDelete }: BoardCardProps) {
         'shadow-md hover:shadow-lg',
         'transition-all duration-150 ease-out',
         'focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2',
-        isHovered && 'transform -translate-y-0.5 scale-[1.02]',
+        (isHovered || isFocused) && 'transform -translate-y-0.5 scale-[1.02]',
       )}
       onClick={handleCardClick}
       onKeyDown={handleKeyDown}
       onPointerEnter={() => setIsHovered(true)}
       onPointerLeave={() => setIsHovered(false)}
+      onFocus={() => setIsFocused(true)}
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+          setIsFocused(false);
+        }
+      }}
     >
       {/* 배경색 영역 */}
       <div
@@ -83,7 +90,7 @@ export function BoardCard({ board, onEdit, onDelete }: BoardCardProps) {
         <div
           className={cn(
             'absolute top-2 right-2 transition-opacity duration-150',
-            isHovered ? 'opacity-100' : 'opacity-0',
+            isHovered || isFocused ? 'opacity-100' : 'opacity-0',
           )}
         >
           <BoardCardMenu onEdit={handleEdit} onDelete={handleDelete} />
