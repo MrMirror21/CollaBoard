@@ -45,6 +45,12 @@ export function CreateBoardModal({
   const navigate = useNavigate();
   const titleInputRef = useRef<HTMLInputElement>(null);
   const createBoardMutation = useCreateBoard();
+  const {
+    reset: resetMutation,
+    mutateAsync: mutateAsyncMutation,
+    isPending: isPendingMutation,
+    isError: isErrorMutation,
+  } = createBoardMutation;
 
   const {
     register,
@@ -73,12 +79,14 @@ export function CreateBoardModal({
         title: '',
         backgroundColor: DEFAULT_BOARD_COLOR,
       });
+      // 모달 생성 실패 후 에러 상태 초기화 (API 호출 후 에러 상태 초기화)
+      resetMutation();
       // 다음 틱에서 포커스 (Dialog 애니메이션 완료 후)
       setTimeout(() => {
         titleInputRef.current?.focus();
       }, 0);
     }
-  }, [isOpen, reset]);
+  }, [isOpen, reset, resetMutation]);
 
   const handleColorSelect = (color: string) => {
     setValue('backgroundColor', color, { shouldValidate: true });
@@ -86,7 +94,7 @@ export function CreateBoardModal({
 
   const onSubmit = async (data: CreateBoardFormData) => {
     try {
-      const newBoard = await createBoardMutation.mutateAsync(data);
+      const newBoard = await mutateAsyncMutation(data);
       onClose();
       onSuccess?.(newBoard.id);
       navigate(`/boards/${newBoard.id}`);
@@ -96,7 +104,7 @@ export function CreateBoardModal({
   };
 
   const handleClose = () => {
-    if (!createBoardMutation.isPending) {
+    if (!isPendingMutation) {
       onClose();
     }
   };
@@ -132,7 +140,7 @@ export function CreateBoardModal({
             <button
               type="button"
               onClick={handleClose}
-              disabled={createBoardMutation.isPending}
+              disabled={isPendingMutation}
               className={cn(
                 'rounded-lg p-1.5 text-gray-400 transition-colors',
                 'hover:bg-gray-100 hover:text-gray-600',
@@ -214,7 +222,7 @@ export function CreateBoardModal({
             </div>
 
             {/* 에러 메시지 */}
-            {createBoardMutation.isError && (
+            {isErrorMutation && (
               <div
                 role="alert"
                 className="mb-4 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 text-sm text-red-600 dark:text-red-400"
@@ -229,21 +237,21 @@ export function CreateBoardModal({
                 type="button"
                 variant="secondary"
                 onClick={handleClose}
-                disabled={createBoardMutation.isPending}
+                disabled={isPendingMutation}
                 className="flex-1"
               >
                 취소
               </Button>
               <Button
                 type="submit"
-                disabled={!isValid || createBoardMutation.isPending}
+                disabled={!isValid || isPendingMutation}
                 className={cn(
                   'flex-1 bg-blue-600 text-white',
                   'hover:bg-blue-700',
                   'disabled:opacity-50 disabled:cursor-not-allowed',
                 )}
               >
-                {createBoardMutation.isPending ? (
+                {isPendingMutation ? (
                   <span className="flex items-center gap-2">
                     <Loader2 className="animate-spin" size={16} />
                     생성 중...
