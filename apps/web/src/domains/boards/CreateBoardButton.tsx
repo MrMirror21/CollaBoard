@@ -1,11 +1,37 @@
-function CreateBoardButton() {
+import { useState, useCallback } from 'react';
+
+import { Button } from '@/components/ui/Button';
+import { CreateBoardModal } from '@/domains/boards/components/CreateBoardModal';
+
+interface CreateBoardButtonProps {
+  onSuccess?: (boardId: string) => void;
+}
+
+/**
+ * 새 보드 만들기 버튼 컴포넌트
+ * 클릭 시 보드 생성 모달을 엽니다.
+ */
+function CreateBoardButton({ onSuccess }: CreateBoardButtonProps) {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const handleOpen = useCallback(() => {
+    setIsModalOpen(true);
+  }, []);
+
+  const handleClose = useCallback(() => {
+    setIsModalOpen(false);
+  }, []);
+
   return (
-    <button
-      className="rounded-md bg-slate-900 px-4 py-2 text-sm text-white hover:bg-slate-900/90 dark:bg-slate-50 dark:text-slate-900 dark:hover:bg-slate-50/90"
-      type="button"
-    >
-      새 보드 만들기
-    </button>
+    <>
+      <Button onClick={handleOpen}>새 보드 만들기</Button>
+      <CreateBoardModal
+        isOpen={isModalOpen}
+        onClose={handleClose}
+        onSuccess={onSuccess}
+      />
+    </>
   );
 }
+
 export default CreateBoardButton;
