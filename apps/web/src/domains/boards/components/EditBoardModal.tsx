@@ -18,7 +18,7 @@ import { ColorPicker } from '@/domains/boards/components/ColorPicker';
 import type { BoardCardData } from '@/domains/boards/components/BoardCard';
 import { useEditBoard } from '@/domains/boards/hooks/useEditBoard';
 import {
-  editBoardSchema,
+  createEditBoardSchema,
   type EditBoardFormData,
 } from '@/domains/boards/schemas/createBoardSchema';
 import { TITLE_MAX_LENGTH } from './CreateBoardModal';
@@ -54,7 +54,12 @@ function EditBoardModal({
     reset,
     formState: { errors, isValid },
   } = useForm<EditBoardFormData>({
-    resolver: zodResolver(editBoardSchema),
+    resolver: zodResolver(
+      createEditBoardSchema({
+        title: board.title,
+        backgroundColor: board.backgroundColor,
+      }),
+    ),
     defaultValues: {
       boardId: '',
       title: '',
