@@ -35,9 +35,11 @@ async function startServer() {
   if (!process.env.FRONTEND_URL && process.env.NODE_ENV === 'production') {
     throw new Error('FRONTEND_URL is not set');
   }
+
   await fastify.register(cors, {
     origin: process.env.FRONTEND_URL || 'http://localhost:3000',
     credentials: true,
+    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE'],
   });
 
   // JWT 플러그인 등록

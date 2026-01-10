@@ -39,14 +39,6 @@ function BoardGrid() {
     }
   }, [inView, hasNextPage, fetchNextPage]);
 
-  const handleEditBoard = useCallback((_boardId: string) => {
-    // TODO: 보드 수정 모달 열기
-  }, []);
-
-  const handleDeleteBoard = useCallback((_boardId: string) => {
-    // TODO: 보드 삭제 확인 모달 열기
-  }, []);
-
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -91,12 +83,7 @@ function BoardGrid() {
     <>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {boards.map((board: BoardSummary) => (
-          <BoardCard
-            key={board.id}
-            board={board}
-            onEdit={handleEditBoard}
-            onDelete={handleDeleteBoard}
-          />
+          <BoardCard key={board.id} board={board} />
         ))}
       </div>
       <div ref={sentinelRef} />

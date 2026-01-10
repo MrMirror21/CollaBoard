@@ -15,42 +15,36 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { BoardPreview } from '@/domains/boards/components/BoardPreview';
 import { ColorPicker } from '@/domains/boards/components/ColorPicker';
-import { DEFAULT_BOARD_COLOR } from '@/domains/boards/constants/colors';
+import type { BoardCardData } from '@/domains/boards/components/BoardCard';
+import { useEditBoard } from '@/domains/boards/hooks/useEditBoard';
 import {
-  createBoardSchema,
-  type CreateBoardFormData,
+  createEditBoardSchema,
+  type EditBoardFormData,
 } from '@/domains/boards/schemas/createBoardSchema';
-import { useCreateBoard } from '@/domains/boards/hooks/useCreateBoard';
+import { TITLE_MAX_LENGTH } from './CreateBoardModal';
 
-export const TITLE_MAX_LENGTH = 100;
-
-interface CreateBoardModalProps {
-  /** 모달 열림 상태 */
+interface EditBoardModalProps {
+  board: BoardCardData;
   isOpen: boolean;
-  /** 모달 닫기 콜백 */
   onClose: () => void;
-  /** 생성 성공 콜백 (선택) */
-  onSuccess?: (boardId: string) => void;
+  onSuccess: () => void;
 }
 
-/**
- * 보드 생성 모달 컴포넌트
- * 보드 제목 입력과 배경색 선택 기능을 제공합니다.
- */
-export function CreateBoardModal({
+function EditBoardModal({
+  board,
   isOpen,
   onClose,
   onSuccess,
-}: CreateBoardModalProps) {
+}: EditBoardModalProps) {
   const navigate = useNavigate();
   const titleInputRef = useRef<HTMLInputElement>(null);
-  const createBoardMutation = useCreateBoard();
+  const editBoardMutation = useEditBoard();
   const {
     reset: resetMutation,
     mutateAsync: mutateAsyncMutation,
     isPending: isPendingMutation,
     isError: isErrorMutation,
-  } = createBoardMutation;
+  } = editBoardMutation;
 
   const {
     register,
@@ -59,11 +53,17 @@ export function CreateBoardModal({
     setValue,
     reset,
     formState: { errors, isValid },
-  } = useForm<CreateBoardFormData>({
-    resolver: zodResolver(createBoardSchema),
+  } = useForm<EditBoardFormData>({
+    resolver: zodResolver(
+      createEditBoardSchema({
+        title: board.title,
+        backgroundColor: board.backgroundColor,
+      }),
+    ),
     defaultValues: {
+      boardId: '',
       title: '',
-      backgroundColor: DEFAULT_BOARD_COLOR,
+      backgroundColor: '',
     },
     mode: 'onChange',
   });
@@ -72,31 +72,32 @@ export function CreateBoardModal({
   const backgroundColor = watch('backgroundColor');
   const titleLength = title.length;
 
-  // 모달 열릴 때 폼 초기화 및 포커스
   useEffect(() => {
     if (isOpen) {
       reset({
-        title: '',
-        backgroundColor: DEFAULT_BOARD_COLOR,
+        boardId: board.id,
+        title: board.title,
+        backgroundColor: board.backgroundColor,
       });
-      // 모달 생성 실패 후 에러 상태 초기화 (API 호출 후 에러 상태 초기화)
+      // 모달 수정 실패 후 에러 상태 초기화 (API 호출 후 에러 상태 초기화)
       resetMutation();
       // 다음 틱에서 포커스 (Dialog 애니메이션 완료 후)
       setTimeout(() => {
         titleInputRef.current?.focus();
       }, 0);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, reset, resetMutation]);
 
   const handleColorSelect = (color: string) => {
     setValue('backgroundColor', color, { shouldValidate: true });
   };
 
-  const onSubmit = async (data: CreateBoardFormData) => {
+  const onSubmit = async (data: EditBoardFormData) => {
     try {
       const newBoard = await mutateAsyncMutation(data);
       onClose();
-      onSuccess?.(newBoard.id);
+      onSuccess?.();
       navigate(`/boards/${newBoard.id}`);
     } catch {
       // 에러는 mutation의 error 상태로 처리
@@ -135,7 +136,7 @@ export function CreateBoardModal({
           {/* 헤더 */}
           <div className="flex items-center justify-between mb-6">
             <DialogTitle className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-              새 보드 만들기
+              보드 수정하기
             </DialogTitle>
             <button
               type="button"
@@ -227,7 +228,7 @@ export function CreateBoardModal({
                 role="alert"
                 className="mb-4 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 text-sm text-red-600 dark:text-red-400"
               >
-                보드 생성에 실패했습니다. 다시 시도해주세요.
+                보드 수정에 실패했습니다. 다시 시도해주세요.
               </div>
             )}
 
@@ -254,10 +255,10 @@ export function CreateBoardModal({
                 {isPendingMutation ? (
                   <span className="flex items-center gap-2">
                     <Loader2 className="animate-spin" size={16} />
-                    생성 중...
+                    수정 중...
                   </span>
                 ) : (
-                  '만들기'
+                  '수정하기'
                 )}
               </Button>
             </div>
@@ -267,3 +268,5 @@ export function CreateBoardModal({
     </Dialog>
   );
 }
+
+export default EditBoardModal;
