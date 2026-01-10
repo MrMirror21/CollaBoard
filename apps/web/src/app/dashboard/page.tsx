@@ -1,4 +1,4 @@
-import CreateBoardButton from '@/domains/boards/CreateBoardButton';
+import CreateBoardButton from '@/domains/boards/components/CreateBoardButton';
 import BoardGrid from '@/domains/boards/components/BoardGrid';
 import { DashboardHeader } from '@/domains/boards/components/DashboardHeader';
 
