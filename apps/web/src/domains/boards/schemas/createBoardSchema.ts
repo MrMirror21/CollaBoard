@@ -12,3 +12,11 @@ export const createBoardSchema = z.object({
 });
 
 export type CreateBoardFormData = z.infer<typeof createBoardSchema>;
+
+export const editBoardSchema = createBoardSchema
+  .extend({
+    boardId: z.string(),
+  })
+  .merge(createBoardSchema);
+
+export type EditBoardFormData = z.infer<typeof editBoardSchema>;
